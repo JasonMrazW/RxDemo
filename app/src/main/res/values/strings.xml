@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">RxDemo</string>
+    <string name="action_show_click">click me!</string>
 </resources>
