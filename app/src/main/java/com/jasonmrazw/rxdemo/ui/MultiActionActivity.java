@@ -1,8 +1,12 @@
 package com.jasonmrazw.rxdemo.ui;
 
+import android.os.Handler;
+import android.os.Message;
+import android.os.SystemClock;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
 
@@ -43,6 +47,10 @@ public class MultiActionActivity extends AppCompatActivity {
     @BindView(R.id.show_click)
     Button mShowClick;
 
+    @BindView(R.id.show_norx_click)
+    Button mShowNoRxClick;
+
+
     /**
      * click stream
      */
@@ -62,10 +70,29 @@ public class MultiActionActivity extends AppCompatActivity {
         /**
          * count for click events
          */
+        initRxEvents();
+
+        initNoRxEvents();
+    }
+
+
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (!mClickSubscription.isUnsubscribed()) {
+            mClickSubscription.unsubscribe();
+        }
+    }
+
+    /**
+     * init rx events
+     */
+    private void initRxEvents() {
         mClickStream = Observable.create(new MultiClickSubscribe(mShowClick));
 
         mClickSubscription = mClickStream
-                .buffer(mClickStream.debounce(600,TimeUnit.MILLISECONDS))
+                .buffer(mClickStream.debounce(600, TimeUnit.MILLISECONDS))
                 .map(new Func1<List<Integer>, Integer>() {
                     @Override
                     public Integer call(List<Integer> integers) {
@@ -77,40 +104,68 @@ public class MultiActionActivity extends AppCompatActivity {
                 .subscribe(new Action1<Integer>() {
                     @Override
                     public void call(Integer integer) {
-                      mShowClick.setText(integer+" click");
+                        mShowClick.setText(integer + " click");
 
                         mRxBus.post("xxx");
                     }
                 });
+    }
 
-        mRxBus = new RxBus();
-        mRxBus.regist(new Subscriber<Object>() {
+
+    private long mLastClickTime;
+
+    private int mClickCount;
+
+    private static final long TIME_SPACE = 600;
+
+    MyHandler mHandler;
+
+
+    private void initNoRxEvents() {
+        mHandler = new MyHandler(mShowNoRxClick);
+
+        mShowNoRxClick.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onCompleted() {
+            public void onClick(View v) {
+                long curTime = System.currentTimeMillis();
+                if (mLastClickTime != 0 && curTime - mLastClickTime > TIME_SPACE) {
+                    mClickCount = 0;
+                }
 
-            }
+                mClickCount++;
+                mLastClickTime = curTime;
 
-            @Override
-            public void onError(Throwable e) {
+                mHandler.removeMessages(MyHandler.WHAT_UPDATEUI);
 
-            }
-
-            @Override
-            public void onNext(Object o) {
-                Toast.makeText(MultiActionActivity.this, "oooo", Toast.LENGTH_SHORT).show();
+                Message message = Message.obtain(mHandler,MyHandler.WHAT_UPDATEUI);
+                Bundle bundle = new Bundle();
+                bundle.putInt(MyHandler.KEY_NUMBER,mClickCount);
+                message.setData(bundle);
+                mHandler.sendMessageDelayed(message, TIME_SPACE);
             }
         });
     }
 
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        if(!mClickSubscription.isUnsubscribed()){
-            mClickSubscription.unsubscribe();
+
+    static class MyHandler extends Handler {
+
+        public static final int WHAT_UPDATEUI = 0x001;
+        public static final java.lang.String KEY_NUMBER = "number";
+
+        private Button mButton;
+
+        public MyHandler(Button mButton) {
+            this.mButton = mButton;
         }
-    }
 
-    private void initSubjectBus(){
-
+        @Override
+        public void handleMessage(Message msg) {
+            super.handleMessage(msg);
+            int what = msg.what;
+            Bundle bundle = msg.getData();
+            if(what == WHAT_UPDATEUI){
+                mButton.setText(bundle.getInt(KEY_NUMBER)+"click");
+            }
+        }
     }
 }

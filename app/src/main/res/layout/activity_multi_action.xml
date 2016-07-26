@@ -15,4 +15,10 @@
         android:layout_height="64dp"
         android:text="@string/action_show_click"/>
 
+    <Button
+        android:id="@+id/show_norx_click"
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        android:layout_alignParentBottom="true"
+        android:text="@string/action_show_click"/>
 </RelativeLayout>
