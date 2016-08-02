@@ -37,7 +37,6 @@ public class RxBus{
     }
 
     public void post(Object t){
-        Log.d(TAG,Thread.currentThread().getName());
         mSubject.onNext(t);
     }
 

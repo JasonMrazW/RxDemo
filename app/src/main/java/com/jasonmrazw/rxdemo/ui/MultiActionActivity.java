@@ -105,8 +105,20 @@ public class MultiActionActivity extends AppCompatActivity {
                     @Override
                     public void call(Integer integer) {
                         mShowClick.setText(integer + " click");
+                    }
+                });
 
-                        mRxBus.post("xxx");
+        mClickStream.buffer(mClickStream.debounce(600,TimeUnit.MILLISECONDS))
+                .map(new Func1<List<Integer>, Integer>() {
+                    @Override
+                    public Integer call(List<Integer> integers) {
+                        return integers.size();
+                    }
+                })
+                .subscribe(new Action1<Integer>(){
+                    @Override
+                    public void call(Integer s) {
+                        Log.d(TAG,s+"click");
                     }
                 });
     }
